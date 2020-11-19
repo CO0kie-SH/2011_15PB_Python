@@ -2,8 +2,17 @@
 # -*- ver	: >=3.8.0 -*-
 # -*- coder : CO0kie丶 -*-
 # -*- time  : 20201119 -*-
-
+import pprint
 from openpyxl import Workbook
+
+pp = pprint.PrettyPrinter()
+
+
+def SaveXlsx2(Path: str, Dict):
+    for url in Dict:
+        print(f'\n【{url}】')
+        pp.pprint(Dict[url])
+    pass
 
 
 # noinspection PyBroadException

