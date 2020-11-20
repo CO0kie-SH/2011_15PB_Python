@@ -76,6 +76,7 @@ if __name__ == '__main__':
     # 循环加入队列
     for url in Global_UserData['inj_urls']:
         que.put(url)
+    # que.put()
 
     # 初始化线程，并启动
     ThreadCtrl(

