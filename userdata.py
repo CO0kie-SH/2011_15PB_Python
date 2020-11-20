@@ -6,7 +6,7 @@ print('我被打印了_userdata.py')
 
 """↓↓↓用户编辑参数段↓↓↓"""
 Global_UserData = {
-    'ThreadNum': 9,
+    'ThreadNum': 10,
     'XlsSavePath': 'E:\\',
     'inj_url': 'http://127.0.0.1:8001/sqli/Less-{}/?id=%s',
 
@@ -19,7 +19,7 @@ Global_UserData = {
 Global_UserData['inj_type'] = ("1", "1'", "1')", "1'))", '1"', '1")', '1"))')
 
 # 初始化靶场 关卡url
-Global_UserData['inj_urls'] = [Global_UserData['inj_url'].format(i + 1) for i in range(9)]
+Global_UserData['inj_urls'] = [Global_UserData['inj_url'].format(i + 1) for i in range(10)]
 
 # 初始化 保存字典
 Global_UserData['result'] = {}

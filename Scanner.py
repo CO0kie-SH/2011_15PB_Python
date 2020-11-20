@@ -106,7 +106,7 @@ class UrlInjector(HTTP):
         self._lock = Lock
         self._threadname = ThreadName
         self._url = Url
-        # if 'Less-1' not in Url:
+        # if 'Less-10' not in Url:
         #     return
 
         self.Print(f'扫描器传入 {Url=}')
@@ -130,8 +130,8 @@ class UrlInjector(HTTP):
                 self._InjError = InjError(
                     self._lock, self._threadname, self._inj_info)
             elif "基于时间盲注" in inj_urls:
-                self._InjTime = InjTime(
-                    self._lock, self._threadname, self._inj_info)
+                # self._InjTime = InjTime(
+                #     self._lock, self._threadname, self._inj_info)
                 pass
             pass
 

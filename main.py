@@ -12,16 +12,6 @@ from Scanner import UrlInjector
 from savedata_xlsx import SaveXlsx2
 
 
-# # 初始化全局函数
-# GetResult_ERROR = inj_exp.GetResult_ERROR
-# SelectTables = inj_exp.SelectTables
-
-# 初始化全局参数
-# Global_UserData = userdata.Global_UserData
-# Global_XlsSavePath = Global_UserData['XlsSavePath']
-# Global_Headers = {'User-Agent': Global_UserData['User-Agent']}
-
-
 class MyThread(threading.Thread):
     def __init__(self, _lock, _thid, _que):
         threading.Thread.__init__(self)
