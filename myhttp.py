@@ -16,11 +16,17 @@ class HTTP(object):
     def GetSelf(self):
         return self
 
-    def GET(self, Url: str):
+    def RefNewTime(self):
+        self.old_time = self.new_time
+        self.new_time = perf_counter()
+        pass
+
+    def GET(self, Url: str, Lock=None):
         """
         函数：GET请求
 
         :param Url: URL统一资源定位器
+        :param Lock: 线程锁，传入时会打印过程
         :return: 响应体长度
         """
         self.content = requests.get(Url)
@@ -29,6 +35,12 @@ class HTTP(object):
         self.con_len = int(self.content.headers['Content-Length']) \
             if 'Content-Length' in self.content.headers \
             else int(len(self.content.content))
+        if Lock is not None:
+            Lock.acquire()
+            print(f'>>HTTP_GET {self.content.status_code} '
+                  f'Len={self.con_len} newTime={self.new_time} '
+                  f'【{Url}】')
+            Lock.release()
         return self.con_len, self.content.status_code,
 
     def GET_RE(self, Url: str, Code: str, Re: str, Lock=None):

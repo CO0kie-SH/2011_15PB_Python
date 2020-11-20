@@ -18,7 +18,7 @@ class InjError(HTTP):
 
     def Print(self, text):
         self._lock.acquire()
-        print(f'>>{self._threadname} 报错脱裤：{text}')
+        print(f'>>{self._threadname} 报错脱库：{text}')
         self._lock.release()
         pass
 
@@ -95,9 +95,9 @@ class InjError(HTTP):
 
     def _db_init(self) -> bool:
         """
-        函数：用于脱裤-系统数据库
+        函数：用于脱库-系统数据库
 
-        :return: T/F=返回是否脱裤成功
+        :return: T/F=返回是否脱库成功
         """
         if self._url is None:
             return False
@@ -129,9 +129,9 @@ class InjError(HTTP):
 
     def _db_table(self) -> bool:
         """
-        函数：脱裤->数据库
+        函数：脱库->数据库
 
-        :return: T/F=成功脱裤
+        :return: T/F=成功脱库
         """
         if self._url is None:
             return False
@@ -189,16 +189,16 @@ class InjError(HTTP):
         :param Name: 线程名
         :param Info: 传入的信息字典
         """
-        if '脱裤' in Info:
+        if '脱库' in Info:
             return
-        Info['脱裤'] = {'数据库': {}, '数据表': {}}
+        Info['脱库'] = {'数据库': {}, '数据表': {}}
         Info['注入方式']['EXP'] = '基于报错注入'
 
         self._lock = Lock
         self._threadname = Name
         self._url = Info['注入方式']['基于报错注入']
-        self._db = Info['脱裤']['数据库']
-        self._tbs = Info['脱裤']['数据表']
+        self._db = Info['脱库']['数据库']
+        self._tbs = Info['脱库']['数据表']
         self._db_init()
         pass
 
@@ -210,8 +210,8 @@ def GetResult_ERROR_COLUMN(Url, Table, Column, Str_sp=Global_spilt, GetResult_ER
     函数：分段获取数据库信息
 
     :param Url: 注入点URL
-    :param Table: 脱裤表名
-    :param Column: 脱裤列名
+    :param Table: 脱库表名
+    :param Column: 脱库列名
     :param Str_sp: 用于分割爆破的字符串，默认为'!@a@!0'
     :param GetResult_ERROR: 用于查找的函数指针
     :return: 拼接的字符串

