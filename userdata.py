@@ -16,7 +16,7 @@ Global_UserData = {
 """↑↑↑用户编辑参数段↑↑↑"""
 
 # 初始化注入参数
-Global_UserData['inj_type'] = ("1'", "1')", "1'))", '1"', '1")', '1"))')
+Global_UserData['inj_type'] = ("1", "1'", "1')", "1'))", '1"', '1")', '1"))')
 
 # 初始化靶场 关卡url
 Global_UserData['inj_urls'] = [Global_UserData['inj_url'].format(i + 1) for i in range(9)]
