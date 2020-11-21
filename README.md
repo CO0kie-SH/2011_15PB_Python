@@ -26,7 +26,7 @@ pip install requests
 pip install openpyxl
 ```
 
-或使用豆瓣镜像源
+或使用豆瓣镜像源安装
 
 ```
 pip install requests -i http://pypi.douban.com/simple/ 
