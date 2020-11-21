@@ -41,15 +41,6 @@ class HTTP(object):
         except:
             print(f'请求失败 {Url=}')
             return None
-        # if self._headers is None:
-        #     self.content = requests.get(Url)
-        # elif len(Cookie) > 0:
-        #     __headers = self._headers.copy()
-        #     __headers['Cookie'] = Cookie
-        #     self.content = requests.get(Url, headers=__headers)
-        # else:
-        #     __headers = {'Cookie': Cookie}
-        #     self.content = requests.get(Url, headers=__headers)
         self.old_time = self.new_time
         self.new_time = perf_counter()
         self.con_len = int(self.content.headers['Content-Length']) \
@@ -61,7 +52,7 @@ class HTTP(object):
                   f'Len={self.con_len} newTime={self.new_time} '
                   f'【{Url}】')
             Lock.release()
-        return self.con_len, self.content.status_code,
+        return self.con_len, self.content.status_code
 
     def GET_RE(self, Url: str, Code: str, Re: str, Lock=None):
         """
