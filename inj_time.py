@@ -5,16 +5,18 @@
 
 import pprint
 from myhttp import HTTP
+from userdata import Global_UserData
 
 """-----定义分隔符-----"""
 
 Global_spilt = "!@Aa@!"
-Global_ExpDict_timeout = 0.5
 Global_ExpDict_char_min = 33
 Global_ExpDict_char_max = 126
 
 """-----定义分隔符-----"""
 pp = pprint.PrettyPrinter()
+Global_ExpDict_timeout = Global_UserData['InjTimeOut']
+Global_Headers = {'User-Agent': Global_UserData['User-Agent']}
 
 
 class InjTime(HTTP):
@@ -167,6 +169,7 @@ class InjTime(HTTP):
         :param Name: 线程名
         :param Info: 传入的信息字典
         """
+        super().__init__(Global_Headers)
         if '脱库' in Info:
             return
         Info['注入方式']['EXP'] = '基于时间盲注'
@@ -177,7 +180,7 @@ class InjTime(HTTP):
         self._char_min = Global_ExpDict_char_min
         self._char_max = Global_ExpDict_char_max + 1
         self._timeout = Global_ExpDict_timeout
-        self._timeout2 = int(Global_ExpDict_timeout * 900)
+        self._timeout2 = int(Global_ExpDict_timeout * 100 * 9)
         self._url = Info['注入方式']['基于时间盲注']
 
         self._db = Info['脱库']['数据库']

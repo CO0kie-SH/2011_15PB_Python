@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# -*- ver	: >=3.8.0 -*-
+# -*- py_ver: >=3.8.0 -*-
 # -*- coder : CO0kie丶 -*-
-# -*- time  : 20201118 -*-
+# -*- time  : 20201120 -*-
 
 import sys
 from time import sleep
@@ -14,7 +14,7 @@ from inj_union import InjUnion
 from inj_err import InjError
 from inj_time import InjTime
 
-print('我被打印了_Scanner.py')
+print('我被打印了_Inj_SQLite.py')
 
 # 初始化全局参数
 Global_XlsSavePath = Global_UserData['XlsSavePath']
@@ -105,19 +105,12 @@ class UrlInjector(HTTP):
         pass
 
     def __init__(self, Lock, ThreadName, Url):
-        """
-        构造函数：初始化扫描器类
 
-        :param Lock: 传入的线程锁
-        :param ThreadName: 传入的线程名
-        :param Url: 传入的Url
-        """
-        super().__init__(Global_Headers)
         self._lock = Lock
         self._threadname = ThreadName
         self._url = Url
-        if 'Less-1/' not in Url:
-            return
+        # if 'Less-10' not in Url:
+        #     return
 
         self.Print(f'扫描器传入 {Url=}')
         self.url = Url

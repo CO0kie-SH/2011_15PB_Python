@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# -*- ver	: >=3.8.0 -*-
+# -*- ver   : >=3.8.0 -*-
 # -*- coder : CO0kie丶 -*-
 # -*- time  : 20201118 -*-
 print('我被打印了_userdata.py')
@@ -7,6 +7,7 @@ print('我被打印了_userdata.py')
 """↓↓↓用户编辑参数段↓↓↓"""
 Global_UserData = {
     'ThreadNum': 10,
+    'InjTimeOut': 0.4,
     'XlsSavePath': 'E:\\',
     'inj_url': 'http://127.0.0.1:8001/sqli/Less-{}/?id=%s',
 

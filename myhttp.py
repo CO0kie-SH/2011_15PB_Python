@@ -11,7 +11,8 @@ class HTTP(object):
     content = None
     con_len = 0
     old_time = 0.0
-    new_time = 0.0
+    new_time = perf_counter()
+    _headers = None
 
     def GetSelf(self):
         return self
@@ -21,15 +22,34 @@ class HTTP(object):
         self.new_time = perf_counter()
         pass
 
-    def GET(self, Url: str, Lock=None):
+    def GET(self, Url: str, Lock=None, Cookie: str = ''):
         """
         函数：GET请求
 
         :param Url: URL统一资源定位器
         :param Lock: 线程锁，传入时会打印过程
+        :param Cookie: Cookie，传入的用户标识
         :return: 响应体长度
         """
-        self.content = requests.get(Url)
+        __headers = {} if self._headers is None else self._headers.copy()
+        if len(Cookie) > 0:
+            __headers['Cookie'] = Cookie
+
+        # 拼接参数完毕，开始GET请求
+        try:
+            self.content = requests.get(Url, headers=__headers)
+        except:
+            print(f'请求失败 {Url=}')
+            return None
+        # if self._headers is None:
+        #     self.content = requests.get(Url)
+        # elif len(Cookie) > 0:
+        #     __headers = self._headers.copy()
+        #     __headers['Cookie'] = Cookie
+        #     self.content = requests.get(Url, headers=__headers)
+        # else:
+        #     __headers = {'Cookie': Cookie}
+        #     self.content = requests.get(Url, headers=__headers)
         self.old_time = self.new_time
         self.new_time = perf_counter()
         self.con_len = int(self.content.headers['Content-Length']) \
@@ -68,5 +88,10 @@ class HTTP(object):
             return int(ret_data) if ret_data.isdigit() else ret_data
         return None
         pass
+
+    def __init__(self, Headers: dict = None):
+        if Headers is not None:
+            self._headers = Headers.copy()
+            pass
 
     pass
